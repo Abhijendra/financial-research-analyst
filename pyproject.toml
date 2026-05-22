@@ -1,0 +1,81 @@
+# pyproject.toml — single source of truth for dependencies and tooling.
+#
+# Dependency manager: uv. There is intentionally no requirements.txt.
+#   - `uv sync`  -> creates .venv and installs everything below + uv.lock
+#   - `uv add X` -> add a new dependency (records the pin here automatically)
+#
+# Per CLAUDE.md §3, every version is pinned (==) and every dependency carries a
+# one-line note on *why* it is here. Versions verified against PyPI 2026-05-22.
+
+[project]
+name = "research-analyst-agent"
+version = "0.1.0"
+description = "An automated financial research analyst built to master LangChain end to end."
+readme = "README.md"
+requires-python = ">=3.11"
+
+dependencies = [
+    # --- LangChain core stack (pinned to the 1.x line) -----------------------
+    "langchain==1.3.1",              # top-level package: agents, high-level helpers
+    "langchain-core==1.4.0",         # Runnable/LCEL primitives, prompts, messages
+    "langchain-community==0.4.1",    # community document loaders (filings, news)
+    "langchain-openai==1.2.2",       # OpenAI ChatModel provider for init_chat_model
+    "langchain-text-splitters==1.1.2", # chunking layer (Week 1 ingestion)
+    # langchain-classic holds the pre-1.x primitives the curriculum contrasts
+    # against: LLMChain / SequentialChain (legacy-chains file) and the classic
+    # create_react_agent + AgentExecutor (react_classic.py). See DECISIONS.md.
+    "langchain-classic==1.0.7",
+    "langgraph==1.2.1",              # graph-based agent rebuild (Week 3)
+    "langsmith==0.8.5",              # tracing + evaluation suite (Week 4)
+
+    # --- Data contracts & config --------------------------------------------
+    "pydantic==2.13.4",              # all structured data is a Pydantic v2 model
+    "pydantic-settings==2.14.1",     # typed env-backed settings in config.py
+    "python-dotenv==1.2.2",          # loads .env (keys are env-only, never hardcoded)
+
+    # --- Document ingestion --------------------------------------------------
+    # Layout-aware loader for table-heavy filings (CLAUDE.md §7). Base package
+    # only; PDF/table extras (`unstructured[pdf]`) get added in Week 1 when the
+    # ingestion code actually needs them — kept out now to limit the dep tree.
+    "unstructured==0.22.29",
+
+    # --- Serving (Week 4) ----------------------------------------------------
+    "fastapi==0.136.1",              # async API surface for the analyst
+    "uvicorn==0.47.0",               # ASGI server that runs the FastAPI app
+]
+
+[dependency-groups]
+# Dev-only tooling (PEP 735 group). Installed by `uv sync`; excluded from the
+# built wheel. Run `uv sync --no-dev` for a runtime-only install.
+dev = [
+    "pytest==9.0.3",                 # unit tests for deterministic logic
+    "pytest-asyncio==1.3.0",         # exercises the .ainvoke/.astream surfaces
+    "ruff==0.15.14",                 # formatter + linter (run before "done")
+]
+
+# --- Build backend ----------------------------------------------------------
+# Hatchling, told explicitly where the package lives because we use a src layout
+# (src/analyst). This makes `import analyst` work after `uv sync`.
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/analyst"]
+
+# --- Ruff (format + lint) ---------------------------------------------------
+[tool.ruff]
+target-version = "py311"
+line-length = 88
+src = ["src", "tests", "eval"]
+
+[tool.ruff.lint]
+# A pragmatic, teaching-friendly rule set: pyflakes, pycodestyle, isort,
+# pyupgrade, flake8-bugbear. Strict enough to catch real bugs, not pedantic.
+select = ["E", "F", "I", "UP", "B"]
+
+# --- Pytest -----------------------------------------------------------------
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"               # async test functions run without a marker
+pythonpath = ["src"]                # import analyst.* without an install step
