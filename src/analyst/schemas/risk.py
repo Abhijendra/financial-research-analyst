@@ -14,3 +14,7 @@ class RiskFactor(BaseModel):
     
     source_excerpt: str = Field(min_length=10, 
                                 description="Verbatim quote from the document supporting this risk; used for citation.")
+    
+class RiskFactorList(BaseModel):
+    """Container — `with_structured_output` binds one risk only, so a list of risks must be wrapped in a single object."""
+    risks: list[RiskFactor] = Field(description="All risks found in the chunk.")

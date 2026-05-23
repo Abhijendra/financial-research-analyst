@@ -12,3 +12,6 @@
 - page is Optional because not every source has pages (news articles, transcripts).
 - ticker lives on Provenance, not just on CompanyFinancials. Risks and sentiment also need to be attributable to a company — putting it on provenance avoids duplicating the field across every extraction schema.
 - published_date is separate from CompanyFinancials.reporting_date. A 10-K filed in March 2025 reports on fiscal year 2024. Conflating them silently corrupts time-series analysis later.
+
+## models.py
+1. Why ChatOpenAI instead of OpenAI?
