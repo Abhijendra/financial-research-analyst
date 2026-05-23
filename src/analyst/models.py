@@ -31,9 +31,12 @@ def get_chat_model(model: str | None = None, temperature: float | None = None) -
     if temperature is None:
         temperature = settings.DEFAULT_TEMPERATURE
 
-    llm = init_chat_model(model=model, temperature=temperature)
-    return llm.configurable_fields(
-        model=ConfigurableField(id="model"),
-        temperature=ConfigurableField(id="temperature")
-    )
+    llm = init_chat_model(
+                            model=model, 
+                            temperature=temperature,
+                            api_key=settings.OPENAI_API_KEY,
+                            configurable_fields=("model", "temperature"),   # ← provider-agnostic
+                            config_prefix="llm",                            # optional, namespaces the keys                        
+                        )
+    return llm
 
