@@ -1,17 +1,25 @@
-## Golden Guide to write schema
+## Schema design
 
-1. Every field gets a description. With .with_structured_output(), descriptions become part of the prompt the model sees. A schema without descriptions is a half-written prompt.
-2. Optional[...] vs required matters more than it looks. Required fields the document doesn't contain → the model invents values. Default to Optional for for anything that isn't guaranteed to appear in every document.
-3. Constrain numerics with ge/le/gt/lt. Use ge/le (inclusive) unless you have a real reason to exclude endpoints.
-4. Cross-field invariants → model_validator. Single-field invariants → field_validator or Field(...).
-5. Provenance lives on the data, not next to it. Before extraction, it is good to add schemas/provenance.py with source: str, page: Optional[int], document_type: str, ticker: Optional[str], date: Optional[date]. Then each top-level extraction model gets a provenance: Provenance field. This is what makes the memo writer in Week 4 able to cite.
-6. Literal > str wherever you have a closed set of values. This is the cheapest validation in Pydantic and it doubles as documentation for the LLM.
+1. **Every field gets a description.** With `.with_structured_output()`, descriptions are sent to the model as part of the prompt. A schema without descriptions is a half-written prompt.
+2. **Optional vs required matters.** Required fields that aren't in the document → the model invents values. Default to `Optional` for anything not guaranteed to appear.
+3. **Constrain numerics with `ge`/`le`.** Use inclusive bounds unless there's a real reason to exclude endpoints.
+4. **Validators by scope.** Cross-field invariants → `model_validator`. Single-field → `field_validator` or `Field(...)`.
+5. **Provenance lives on the data.** `schemas/provenance.py` carries `source`, `page`, `document_type`, `ticker`, `date`. Every top-level extraction model gets a `provenance` field. This is what makes Week 4's memo writer able to cite.
+6. **`Literal` > `str` for closed sets.** Cheapest validation in Pydantic, and it doubles as documentation for the LLM.
 
-### Provenance schema
-- document_type is a Literal, not free text. Week 2's classifier will write into this field, and Week 2's router (RunnableBranch) will read it. A closed set keeps the router exhaustive.
-- page is Optional because not every source has pages (news articles, transcripts).
-- ticker lives on Provenance, not just on CompanyFinancials. Risks and sentiment also need to be attributable to a company — putting it on provenance avoids duplicating the field across every extraction schema.
-- published_date is separate from CompanyFinancials.reporting_date. A 10-K filed in March 2025 reports on fiscal year 2024. Conflating them silently corrupts time-series analysis later.
+### Provenance specifics
+- `document_type` is a `Literal`, not free text. Week 2's classifier writes it; Week 2's router (`RunnableBranch`) reads it. A closed set keeps the router exhaustive.
+- `page` is `Optional` — not every source has pages (news, transcripts).
+- `ticker` lives on `Provenance`, not on `CompanyFinancials`. Risks and sentiment also need company attribution; putting it on provenance avoids duplicating the field across every schema.
+- `published_date` is separate from `CompanyFinancials.reporting_date`. A 10-K filed in March 2025 reports on fiscal year 2024 — conflating them silently corrupts time-series analysis.
 
 ## models.py
-1. Why ChatOpenAI instead of OpenAI?
+1. Why `ChatOpenAI` instead of `OpenAI`?
+
+## Structured extraction
+
+1. **`with_structured_output` over `PydanticOutputParser`.** Uses the provider's native tool-calling to bind the schema at the API level, so the reply is a validated Pydantic object — no string parsing, no format-instruction prompt bloat. The manual path is kept in `extraction/manual_parse.py` only to show what this hides.
+2. **Temperature 0 for extraction.** Extraction is not creative. Determinism > variety; sampling noise only adds drift between runs on the same document.
+3. **List wrapper schema for multi-item extraction.** `with_structured_output` accepts one root schema, but a document can contain many risks. `RiskFactorList` wraps `list[RiskFactor]` so the model can return all of them in a single call.
+4. **`RunnableParallel` over sequential calls.** Financials, risks, and sentiment are independent extractions over the same chunk. Fanning out gives max-of-three latency instead of sum-of-three, and the three branches share one configurable model instance.
+5. **Provenance attached post-hoc, not asked of the LLM.** Source path, page, and document type come from ingestion metadata — facts we already know. Asking the model for them invites hallucinated citations, which would silently corrupt the memo writer's downstream output.
