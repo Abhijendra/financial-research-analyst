@@ -21,7 +21,25 @@ def test_schema_binding():
     build_financials_extractor(model=fake)
     assert fake.bound_schema is CompanyFinancials
 
-# def test_build_full_extractor():
-#     fake = FakeChatModel()
-#     build_full_extractor(model=fake)
-#     assert
+class RecordingChatModel:
+    """Records every schema bound via `with_structured_output`."""
+
+    def __init__(self):
+        self.bound_schemas = []
+
+    def with_structured_output(self, schema):
+        self.bound_schemas.append(schema)
+        return RunnableLambda(lambda x: schema)
+
+
+def test_build_full_extractor():
+    from analyst.schemas.risk import RiskFactorList
+    from analyst.schemas.sentiment import SentimentScore
+
+    fake = RecordingChatModel()
+    chain = build_full_extractor(model=fake)
+
+    assert isinstance(chain, Runnable)
+    # All three branches must bind their schema on the shared model instance.
+    assert set(fake.bound_schemas) == {CompanyFinancials, RiskFactorList, SentimentScore}
+    assert len(fake.bound_schemas) == 3
