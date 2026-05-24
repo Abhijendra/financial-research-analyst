@@ -13,7 +13,6 @@ from analyst.prompts.extraction_prompts import FINANCIALS_PROMPT, RISKS_PROMPT, 
 from analyst.schemas.financials import CompanyFinancials
 from analyst.schemas.risk import RiskFactorList
 from analyst.schemas.sentiment import SentimentScore
-from analyst.schemas.provenance import Provenance
 
 def build_financials_extractor(model: Runnable | None = None) -> Runnable:
     """Extract `CompanyFinancials` from a single chunk.
@@ -58,15 +57,6 @@ def build_full_extractor(model: Runnable | None = None) -> Runnable:
         risks=build_risks_extractor(model),
         sentiment=build_sentiment_extractor(model)
     )
-
-def attach_provenance(result: dict, provenance: Provenance) -> dict:
-    """Attach ingestion metadata to an extractor's output.
-
-      Provenance comes from the chunk, not the LLM — kept out of every
-      extraction schema on purpose so the model can't hallucinate source paths
-      or page numbers. Pure function, does not mutate `result`.
-    """    
-    return {**result, "provenance": provenance}
 
 
 # if __name__ == "__main__":

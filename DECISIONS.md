@@ -23,3 +23,10 @@
 3. **List wrapper schema for multi-item extraction.** `with_structured_output` accepts one root schema, but a document can contain many risks. `RiskFactorList` wraps `list[RiskFactor]` so the model can return all of them in a single call.
 4. **`RunnableParallel` over sequential calls.** Financials, risks, and sentiment are independent extractions over the same chunk. Fanning out gives max-of-three latency instead of sum-of-three, and the three branches share one configurable model instance.
 5. **Provenance attached post-hoc, not asked of the LLM.** Source path, page, and document type come from ingestion metadata — facts we already know. Asking the model for them invites hallucinated citations, which would silently corrupt the memo writer's downstream output.
+
+
+## Manual Parsing 
+
+- `OutputFixingParser` over manual `try/except` + retry (one LLM hop with a known repair prompt vs. hand-rolled control flow).
+- `prompt.partial(format_instructions=...)` over passing them at invoke time (call signature stays identical to the structured path → the two are drop-in interchangeable for callers).
+- When you would actually pick this path in production (models without tool-calling, providers whose structured-output API is unreliable, or when you need to log/inspect the raw text reply).
