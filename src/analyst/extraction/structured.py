@@ -8,7 +8,7 @@ giving validated Pydantic instances directly. Contrast with
 CLAUDE.md §6 so the tradeoff is visible.
 """
 from langchain_core.runnables import Runnable, RunnableParallel
-from analyst.models import get_chat_model
+from analyst.models import get_resilient_model
 from analyst.prompts.extraction_prompts import FINANCIALS_PROMPT, RISKS_PROMPT, SENTIMENT_PROMPT
 from analyst.schemas.financials import CompanyFinancials
 from analyst.schemas.risk import RiskFactorList
@@ -21,7 +21,7 @@ def build_financials_extractor(model: Runnable | None = None) -> Runnable:
     constrained at the API level (tool-calling), so the return value is a
     validated Pydantic instance, not a string to parse.
     """    
-    model = model or get_chat_model()
+    model = model or get_resilient_model()
     return FINANCIALS_PROMPT | model.with_structured_output(CompanyFinancials)
 
 def build_risks_extractor(model: Runnable | None = None) -> Runnable:
@@ -31,7 +31,7 @@ def build_risks_extractor(model: Runnable | None = None) -> Runnable:
     `with_structured_output` accepts exactly one root schema — a list of
     items must be held inside a container model.
     """    
-    model = model or get_chat_model()
+    model = model or get_resilient_model()
     return RISKS_PROMPT | model.with_structured_output(RiskFactorList)
 
 def build_sentiment_extractor(model: Runnable | None = None) -> Runnable:
@@ -40,7 +40,7 @@ def build_sentiment_extractor(model: Runnable | None = None) -> Runnable:
     The schema's `model_validator` enforces label↔score sign agreement; the
     prompt mirrors that rule so the model rarely produces invalid combos.
     """    
-    model = model or get_chat_model()
+    model = model or get_resilient_model()
     return SENTIMENT_PROMPT | model.with_structured_output(SentimentScore)
 
 def build_full_extractor(model: Runnable | None = None) -> Runnable:
@@ -51,7 +51,7 @@ def build_full_extractor(model: Runnable | None = None) -> Runnable:
     The shared `model` is resolved once at the top so all branches reuse the
     same configurable instance (one model object, three concurrent calls).
     """
-    model = model or get_chat_model()
+    model = model or get_resilient_model()
     return RunnableParallel(
         financials=build_financials_extractor(model),
         risks=build_risks_extractor(model),

@@ -19,7 +19,7 @@ def build_router_chain(model: Runnable | None = None):
         (lambda x: x["classification"].document_type == "earnings_report", earning_chain),
         (lambda x: x["classification"].document_type in ["annual_filing", "quarterly_filing"], filing_chain),
         (lambda x: x["classification"].document_type in ["press_release", "news_article"], news_chain),
-        RunnableLambda(lambda x: default_chain)
+        default_chain
     )
 
     # to make classification visible to the caller using RunnablePassthrough

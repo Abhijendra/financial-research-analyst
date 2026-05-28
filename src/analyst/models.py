@@ -34,7 +34,7 @@ def get_chat_model(model: str | None = None, temperature: float | None = None) -
     provider,_,_ = model.partition(":")
 
     keys = {"openai": settings.OPENAI_API_KEY, 
-            "google": settings.GOOGLE_API_KEY}
+            "google_genai": settings.GOOGLE_API_KEY}
     
     api_key = keys.get(provider)
     if api_key is None:

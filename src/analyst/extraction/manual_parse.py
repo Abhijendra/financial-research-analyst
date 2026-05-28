@@ -20,7 +20,7 @@ makes the raw reply inspectable. Kept side by side per CLAUDE.md §6.
 from langchain_core.runnables import Runnable, RunnableParallel
 from langchain_core.output_parsers import PydanticOutputParser
 from langchain_classic.output_parsers.fix import OutputFixingParser
-from analyst.models import get_chat_model
+from analyst.models import get_resilient_model
 from analyst.prompts.manual_extraction_prompts import MANUAL_FINANCIALS_PROMPT, MANUAL_RISKS_PROMPT, MANUAL_SENTIMENT_PROMPT
 from analyst.schemas.financials import CompanyFinancials
 from analyst.schemas.risk import RiskFactorList
@@ -39,7 +39,7 @@ def build_financials_extractor(model: Runnable | None = None) -> Runnable:
     works on any text-returning model, at the cost of one extra hop on a
     malformed reply.
     """
-    model = model or get_chat_model()
+    model = model or get_resilient_model()
     parser = PydanticOutputParser(pydantic_object=CompanyFinancials)
     fixing_parser = OutputFixingParser.from_llm(parser=parser, llm=model)
     prompt = MANUAL_FINANCIALS_PROMPT.partial(
@@ -57,7 +57,7 @@ def build_risks_extractor(model: Runnable | None = None) -> Runnable:
     single root model — a bare `list[...]` won't produce usable format
     instructions.
     """
-    model = model or get_chat_model()
+    model = model or get_resilient_model()
     parser = PydanticOutputParser(pydantic_object=RiskFactorList)
     fixing_parser = OutputFixingParser.from_llm(parser=parser, llm=model)
     prompt = MANUAL_RISKS_PROMPT.partial(
@@ -75,7 +75,7 @@ def build_sentiment_extractor(model: Runnable | None = None) -> Runnable:
     surface — the raw text reply is inspectable, which is exactly why this
     path is useful when a model's tool-calling is unreliable.
     """
-    model = model or get_chat_model()
+    model = model or get_resilient_model()
     parser = PydanticOutputParser(pydantic_object=SentimentScore)
     fixing_parser = OutputFixingParser.from_llm(parser=parser, llm=model)
     prompt = MANUAL_SENTIMENT_PROMPT.partial(
@@ -92,7 +92,7 @@ def build_full_extractor(model: Runnable | None = None) -> Runnable:
     `structured.build_full_extractor` — by design, so downstream code is
     drop-in interchangeable between the two paths.
     """
-    model = model or get_chat_model()
+    model = model or get_resilient_model()
     return RunnableParallel(
         financials=build_financials_extractor(model),
         risks=build_risks_extractor(model),
