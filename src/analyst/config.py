@@ -15,7 +15,9 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     OPENAI_API_KEY: str = Field(min_length=1)
+    GOOGLE_API_KEY: str = Field(min_length=1)
     DEFAULT_MODEL: str = "openai:gpt-4o-mini"
     DEFAULT_TEMPERATURE: float = 0.0
+    FALLBACK_MODEL: str = "google_genai:gemini-2.5-flash"
 
 settings = Settings()

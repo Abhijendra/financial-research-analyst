@@ -1,4 +1,4 @@
-from langchain_core.runnables import ConfigurableField, Runnable
+from langchain_core.runnables import Runnable
 from langchain.chat_models import init_chat_model
 from analyst.config import settings
 
@@ -31,12 +31,29 @@ def get_chat_model(model: str | None = None, temperature: float | None = None) -
     if temperature is None:
         temperature = settings.DEFAULT_TEMPERATURE
 
+    provider,_,_ = model.partition(":")
+
+    keys = {"openai": settings.OPENAI_API_KEY, 
+            "google": settings.GOOGLE_API_KEY}
+    
+    api_key = keys.get(provider)
+    if api_key is None:
+        raise ValueError(f"No API Key configured for provider: {provider}")
+    
     llm = init_chat_model(
                             model=model, 
                             temperature=temperature,
-                            api_key=settings.OPENAI_API_KEY,
+                            api_key=api_key,
                             configurable_fields=("model", "temperature"),   # ← provider-agnostic
                             config_prefix="llm",                            # optional, namespaces the keys                        
                         )
     return llm
 
+def get_resilient_model() -> Runnable:
+    """Primary ChatModel wrapped with a cross-provider fallback via
+    `.with_fallbacks([...])` — one-line LCEL resilience that stays visible
+    in the tracer, instead of an opaque try/except.
+    """
+    primary = get_chat_model()
+    secondary = get_chat_model(model=settings.FALLBACK_MODEL)
+    return primary.with_fallbacks([secondary])
