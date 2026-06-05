@@ -1,5 +1,7 @@
 from pydantic import BaseModel, Field
+
 from analyst.schemas.provenance import DocumentType
+
 
 class DocumentClassification(BaseModel):
 

@@ -28,7 +28,8 @@ def build_earnings_chain(model: Runnable | None = None) -> Runnable:
 
 
 def build_filing_chain(model: Runnable | None = None) -> Runnable:
-    """10-K/10-Q filings — financials + risks; sentiment is meaningless on formal disclosures."""
+    """10-K/10-Q filings — financials + risks;
+    sentiment is meaningless on formal disclosures."""
     model = model or get_resilient_model()
     return RunnableParallel(
         financials=build_financials_extractor(model), risks=build_risks_extractor(model)
