@@ -1,10 +1,13 @@
-from langchain_core.runnables import Runnable, RunnableLambda
-from analyst.models import get_resilient_model
+from langchain_core.runnables import RunnableLambda
 
 
 def test_fallback():
-    def always_fails(x): raise RuntimeError("primary down")
-    def always_succeed(x): return "from-fallback"
+    def always_fails(x):
+        raise RuntimeError("primary down")
+
+    def always_succeed(x):
+        return "from-fallback"
+
     primary = RunnableLambda(always_fails)
     secondary = RunnableLambda(always_succeed)
 
